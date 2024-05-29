@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
+	"log"
 	"reflect"
 )
 
@@ -12,9 +14,25 @@ type Albums struct {
 	Price  float32
 }
 
-func AddAlbum(album Albums, db *sql.DB) (int64, error) {
+func ConnectDB() (*sql.DB, error) {
+	connStr := "user=Akmal password=4kum4RUp0stgr3s dbname=recordings sslmode=disable"
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return db, nil
+}
+
+func AddAlbum(album Albums) (int64, error) {
 	var newId int64
-	err := db.QueryRow("INSERT INTO album (title, artist, price) VALUES ($1, $2, $3) RETURNING id", album.Title, album.Artist, album.Price).Scan(&newId)
+	db, err := ConnectDB()
+	if err != nil {
+		fmt.Printf("Error when trying to connect to DB: %s", err)
+		return 0, err
+	}
+
+	err = db.QueryRow("INSERT INTO album (title, artist, price) VALUES ($1, $2, $3) RETURNING id", album.Title, album.Artist, album.Price).Scan(&newId)
 	if err != nil {
 		return 0, err
 	}
@@ -22,8 +40,14 @@ func AddAlbum(album Albums, db *sql.DB) (int64, error) {
 	return newId, nil
 }
 
-func AlbumsByMinimumPrice(price float32, db *sql.DB) ([]Albums, error) {
+func AlbumsByMinimumPrice(price float32) ([]Albums, error) {
 	var albums []Albums
+	db, err := ConnectDB()
+	if err != nil {
+		fmt.Printf("Error when trying to connect to DB: %s", err)
+		return albums, err
+	}
+
 	rows, err := db.Query(`SELECT id, title, artist, price FROM album WHERE price >= $1`, price)
 	defer rows.Close()
 
@@ -52,8 +76,15 @@ func AlbumsByMinimumPrice(price float32, db *sql.DB) ([]Albums, error) {
 	return albums, nil
 }
 
-func AllAlbums(db *sql.DB) ([]Albums, error) {
+func AllAlbums() ([]Albums, error) {
 	var albums []Albums
+
+	db, err := ConnectDB()
+	if err != nil {
+		fmt.Printf("Error when trying to connect to DB: %s", err)
+		return albums, err
+	}
+
 	rows, err := db.Query("SELECT id, title, artist, price FROM album")
 	if err != nil {
 		return albums, err
@@ -85,11 +116,17 @@ func AllAlbums(db *sql.DB) ([]Albums, error) {
 	return albums, nil
 }
 
-func AlbumsById(id int64, db *sql.DB) (Albums, error) {
+func AlbumsById(id int64) (Albums, error) {
 	var album Albums
+	db, err := ConnectDB()
+	if err != nil {
+		fmt.Printf("Error when trying to connect to DB: %s", err)
+		return album, err
+	}
+
 	row := db.QueryRow(`SELECT id, title, artist, price FROM album WHERE id = $1`, id)
 
-	err := row.Scan(&album.ID, &album.Title, &album.Artist, &album.Price)
+	err = row.Scan(&album.ID, &album.Title, &album.Artist, &album.Price)
 	if err != nil {
 		return album, err
 	}
@@ -97,16 +134,29 @@ func AlbumsById(id int64, db *sql.DB) (Albums, error) {
 	return album, nil
 }
 
-func ChangeAlbumPrice(id int64, db *sql.DB, newPrice float32) (int64, error) {
-	_, err := db.Exec("UPDATE album SET price = $1 WHERE id = $2", newPrice, id)
+func ChangeAlbumPrice(id int64, newPrice float32) (int64, error) {
+	db, err := ConnectDB()
 	if err != nil {
-		panic(err)
+		fmt.Printf("Error when trying to connect to DB: %s", err)
+		return 0, err
+	}
+
+	_, err = db.Exec("UPDATE album SET price = $1 WHERE id = $2", newPrice, id)
+	if err != nil {
+		fmt.Printf("Error when trying to update data to DB: %s", err)
+		return 0, err
 	}
 
 	return id, nil
 }
 
-func DeleteAlbum(id int64, db *sql.DB) (int64, error) {
+func DeleteAlbum(id int64) (int64, error) {
+	db, err := ConnectDB()
+	if err != nil {
+		fmt.Printf("Error when trying to connect to DB: %s", err)
+		return 0, err
+	}
+
 	res, err := db.Exec("DELETE FROM album WHERE id = $1", id)
 	if err != nil {
 		return 0, err

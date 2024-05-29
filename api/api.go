@@ -1,7 +1,6 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
 	DB "example/postgrest1/db"
 	"fmt"
@@ -11,27 +10,12 @@ import (
 	"strconv"
 )
 
-func ConnectDB() (*sql.DB, error) {
-	connStr := "user=Akmal password=4kum4RUp0stgr3s dbname=recordings sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return db, nil
-}
-
 func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/albums", http.StatusPermanentRedirect)
 }
 
 func GetAllAlbums(w http.ResponseWriter, r *http.Request) {
-	db, err := ConnectDB()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	albums, err := DB.AllAlbums(db)
+	albums, err := DB.AllAlbums()
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -47,15 +31,9 @@ func GetAlbumById(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(url, 10, 64)
 	if err != nil {
 		log.Fatal(err)
-	}
 
-	db, err := ConnectDB()
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	fmt.Println(url)
-	album, err := DB.AlbumsById(id, db)
+	album, err := DB.AlbumsById(id)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -87,12 +65,7 @@ func CreateNewAlbum(w http.ResponseWriter, r *http.Request) {
 		Price:  price32,
 	}
 
-	db, err := ConnectDB()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	album, err := DB.AddAlbum(albums, db)
+	album, err := DB.AddAlbum(albums)
 	if err != nil {
 		fmt.Printf("Error while calling insert query: %s", err)
 		return
