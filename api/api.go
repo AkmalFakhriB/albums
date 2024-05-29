@@ -31,7 +31,7 @@ func GetAlbumById(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(url, 10, 64)
 	if err != nil {
 		log.Fatal(err)
-
+	}
 
 	album, err := DB.AlbumsById(id)
 	if err != nil {
