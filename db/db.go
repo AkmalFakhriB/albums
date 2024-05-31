@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+
+	_ "github.com/lib/pq"
 )
 
 type Albums struct {
@@ -15,7 +17,7 @@ type Albums struct {
 }
 
 func ConnectDB() (*sql.DB, error) {
-	connStr := "user=Akmal password=4kum4RUp0stgr3s dbname=recordings sslmode=disable"
+	connStr := "user=akmal password=12345678 dbname=recordings sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)
@@ -49,6 +51,9 @@ func AlbumsByMinimumPrice(price float32) ([]Albums, error) {
 	}
 
 	rows, err := db.Query(`SELECT id, title, artist, price FROM album WHERE price >= $1`, price)
+	if err != nil {
+		return albums, err
+	}
 	defer rows.Close()
 
 	for rows.Next() {

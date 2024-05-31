@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	DB "example/postgrest1/db"
 	"fmt"
-	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"strconv"
@@ -74,4 +73,59 @@ func CreateNewAlbum(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "multipart/form-data")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(album)
+}
+
+func UpdateAlbumPrice(w http.ResponseWriter, r *http.Request) {
+	url := r.PathValue("id")
+	id, err := strconv.ParseInt(url, 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := r.ParseForm(); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Error parsing form data: %v", err)
+		return
+	}
+
+	price, err := strconv.ParseFloat(r.FormValue("price"), 32)
+	if err != nil {
+		fmt.Printf("Error occured when reading price: %s", err)
+		return
+	}
+
+	price32 := float32(price)
+
+	id, err = DB.ChangeAlbumPrice(id, price32)
+	if err != nil {
+		fmt.Printf("Error occured when trying to update the album price: %s", err)
+		return
+	}
+
+	album, err := DB.AlbumsById(id)
+	if err != nil {
+		fmt.Printf("Error occure when tyring to get updated album: %s", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(album)
+}
+
+func DeleteAlbum(w http.ResponseWriter, r *http.Request) {
+	url := r.PathValue("id")
+	id, err := strconv.ParseInt(url, 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	count, err := DB.DeleteAlbum(id)
+	if err != nil {
+		fmt.Printf("Error while calling trying to delete album: %s", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(count)
 }
